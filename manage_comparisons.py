@@ -385,15 +385,6 @@ def alternative_IA_calculation(data_path, save_path):
 
 
 if __name__ == "__main__":
-    manage_comparisons(data_path=r"E:\Richness\Chuyin\01 replication and blurry\Data\Comparison\0_original",
-                       save_path=r"E:\Richness\Chuyin\01 replication and blurry\Data\Comparison\0_original")
-    #manage_comparisons(data_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Comparison\2_filtered",
-    #                   save_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Comparison\2_filtered")
-    #manage_comparisons(data_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Comparison\filtered",
-    #                   save_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Comparison\filtered")
-    # ROUND 1
-    #alternative_IA_calculation(data_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Round 1 intact\PerceptionExperiment_2022-03-11b\processed\0_analysis_original",
-    #                           save_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Round 1 intact\PerceptionExperiment_2022-03-11b\processed\analysis_with_rare")
-    # ROUND 2
-    #alternative_IA_calculation(data_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Round 2 blur\PerceptionExperiment_2022-04-19\processed\0_analysis_original",
-    #                           save_path=r"D:\Richness\Chuyin\01 replication and blurry\Data\Round 2 blur\PerceptionExperiment_2022-04-19\processed\analysis_with_rare")
+    manage_comparisons(data_path=r"..\0_original",
+                       save_path=r"..\0_original")
+    
