@@ -40,12 +40,15 @@ REMOVED_PROLIFIC_SUBS = list()
 STIM_REPS = 10
 DEMOG_LANG = "First Language"
 DEMOG_SUB = "Participant id"  #  ****** IN OLD PROLIFIC VERSIONS *******: "participant_id"
+DEMOG_SUB_OLD = "participant_id"
 DEMOG_DATA_EXPIRED = "DATA EXPIRED"
 DEMOG_NATIONALITY = "Nationality"
 DEMOG_SEX = "Sex"
 DEMOG_AGE = "Age"  #  ****** IN OLD PROLIFIC VERSIONS *******: "age"
+DEMOG_AGE_OLD = "age"
 DEMOG_TIME_COMPLETE = "completed_date_time"
 DEMOG_TIME_TAKEN_SEC = "Time taken"  #  ****** IN OLD PROLIFIC VERSIONS *******: "time_taken"
+DEMOG_TIME_TAKEN_SEC_OLD = "time_taken"
 # not used so for removal
 END_BUTTON = "end_button"
 REDU_1 = "image_name"
@@ -62,7 +65,10 @@ def load_subs(data_path):
     # files are Pavlovia files; some Prolific subjects might have attempted to do the experiment more than once
     file_names = [f for f in os.listdir(data_path) if f.endswith(CSV) and EXP_NAME in f]
     for f in file_names:
-        file_data = pd.read_csv(os.path.join(data_path, f))
+        try:
+            file_data = pd.read_csv(os.path.join(data_path, f))
+        except pd.errors.EmptyDataError:  # No columns to parse from file
+            continue
         if file_data.empty:
             continue  # no subject information in that file - probably an in-&-out
         file_id = file_data[PROLIFIC_ID].unique()[0]  # there's only 1 Prolific ID per Pavlovia data file
@@ -144,7 +150,10 @@ def filter_sess(subs_dict, sequences):
                     for sess_num in sorted(list(sub_seqs.keys())):  # Go over them by order
                         sess_str = sub_seqs[sess_num][-7:]
                         selected_seq = list(sequences[sess_str][STIM_ID_EXTRA_COL])  # Planned stim
-                        presented_seq = list(sub_sessions[sess_num][STIM_ID_EXTRA_COL].dropna(axis=0))  # Presented stim
+                        try:
+                            presented_seq = list(sub_sessions[sess_num][STIM_ID_EXTRA_COL].dropna(axis=0))  # Presented stim
+                        except KeyError:  # stim_name for most versions, otherwise image_name
+                            presented_seq = list(sub_sessions[sess_num][REDU_1].dropna(axis=0))
                         if len(selected_seq) != len(presented_seq) and not invalid_sess_flag:
                             # A partial session (the first that was encountered), raise flag
                             invalid_sess_flag = 1
@@ -270,12 +279,14 @@ def filter_subs(subs_dict, sequences, demog_data_path):
     print(f"{cnt} subjects were removed for not completing the experiment (partial data).")
     subs_removed += cnt
 
-
     demographic_data = pd.read_csv(demog_data_path)
     # SPECIAL CASE (WEIRD, HAPPENED ONCE): subject with full pavlovia data (experiment), but no demongraphic data (prolific table)
     cnt = 0
     for sub in subs_list:
-        subject_demographics = demographic_data[demographic_data[DEMOG_SUB] == sub]
+        try:
+            subject_demographics = demographic_data[demographic_data[DEMOG_SUB] == sub]
+        except Exception:  # older versions of prolific
+            subject_demographics = demographic_data[demographic_data[DEMOG_SUB_OLD] == sub]
         if subject_demographics.empty:  # this subject has NO demographic data
             if sub in subs_dict.keys():  # if this subject exists in the subject dictionary
                 r = subs_dict.pop(sub)  # Remove it
@@ -285,7 +296,10 @@ def filter_subs(subs_dict, sequences, demog_data_path):
     print(f"{cnt} subjects were removed for not having demographic data.")
 
     # now, sync the demographic data table s.t it will include all the subjects in the data dictionary
-    demographic_data = demographic_data[demographic_data[DEMOG_SUB].isin(list(subs_dict.keys()))].reset_index(drop=True)
+    try:
+        demographic_data = demographic_data[demographic_data[DEMOG_SUB].isin(list(subs_dict.keys()))].reset_index(drop=True)
+    except Exception:
+        demographic_data = demographic_data[demographic_data[DEMOG_SUB_OLD].isin(list(subs_dict.keys()))].reset_index(drop=True)
     #demographic_data = demographic_data.drop(demographic_data.columns[[0]], axis=1)
     print(f"***{demographic_data.shape[0]}*** subjects are included in the experiment's database. A total of {subs_removed} subjects were excluded.")
     return subs_dict, demographic_data
@@ -298,18 +312,28 @@ def dempgraphic_stats(demographic_data, save_path):
     :param save_path: path to save outputs in (folder)
     :return: Nothing; saves the data in csv files under save_path
     """
-    cnt_sex = demographic_data.groupby(DEMOG_SEX).count()[DEMOG_SUB]
+    try:
+        cnt_sex = demographic_data.groupby(DEMOG_SEX).count()[DEMOG_SUB]
+    except Exception:  # old prolific versions
+        cnt_sex = demographic_data.groupby(DEMOG_SEX).count()[DEMOG_SUB_OLD]
     cnt_nation = demographic_data.groupby(DEMOG_NATIONALITY).count()
     cnt_nation = cnt_nation.iloc[:, 1:2]
     cnt_nation.rename({DEMOG_SUB: "count"}, axis=1, inplace=True)
     cnt_nation.to_csv(os.path.join(save_path, "demog_nation.csv"))
-    ages = pd.to_numeric(demographic_data[DEMOG_AGE], errors='coerce')  # some have a "DATA_EXPIRED" entry instead of age, this turns them to nan
+    try:
+        ages = pd.to_numeric(demographic_data[DEMOG_AGE], errors='coerce')  # some have a "DATA_EXPIRED" entry instead of age, this turns them to nan
+    except Exception: # old versions of prolific
+        ages = pd.to_numeric(demographic_data[DEMOG_AGE_OLD], errors='coerce')
     mean_age = np.nanmean(ages)
     std_age = np.nanstd(ages)
     min_age = np.nanmin(ages)
     max_age = np.nanmax(ages)
-    mean_minutes = np.nanmean(demographic_data[DEMOG_TIME_TAKEN_SEC]) / 60
-    std_minutes = np.nanstd(demographic_data[DEMOG_TIME_TAKEN_SEC]) / 60
+    try:
+        mean_minutes = np.nanmean(demographic_data[DEMOG_TIME_TAKEN_SEC]) / 60
+        std_minutes = np.nanstd(demographic_data[DEMOG_TIME_TAKEN_SEC]) / 60
+    except Exception:
+        mean_minutes = np.nanmean(demographic_data[DEMOG_TIME_TAKEN_SEC_OLD]) / 60
+        std_minutes = np.nanstd(demographic_data[DEMOG_TIME_TAKEN_SEC_OLD]) / 60
     pd.DataFrame({"age mean": [mean_age], "age std": [std_age], "age min": [min_age], "age max": [max_age],
                   "time (minutes) mean": [mean_minutes], "time (minutes) std": [std_minutes],
                   cnt_sex.index[0]: [cnt_sex[cnt_sex.index[0]]], cnt_sex.index[1]: [cnt_sex[cnt_sex.index[1]]]}).to_csv(os.path.join(save_path, "demog_age_sex.csv"))
@@ -415,7 +439,10 @@ def get_stim_resps(subs_db, demographic_data, all_stim_images, save_path):
 
     for sub in subs_list:
         sub_dict[sub] = dict()
-        sub_index = demographic_data[demographic_data[DEMOG_SUB] == sub].index[0]  # subject order
+        try:
+            sub_index = demographic_data[demographic_data[DEMOG_SUB] == sub].index[0]  # subject order
+        except Exception:  # old prolific versions
+            sub_index = demographic_data[demographic_data[DEMOG_SUB_OLD] == sub].index[0]
         sub_sessions = subs_db[sub]
         sub_sess_names = list(sub_sessions.keys())
         for sess in sub_sess_names:

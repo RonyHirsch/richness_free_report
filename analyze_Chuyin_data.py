@@ -1,6 +1,5 @@
 import os
 import pandas as pd
-import numpy as np
 import process_raw_data
 import analyze_data
 
@@ -15,6 +14,14 @@ COL_BLOCK_NUM = "blocknum"
 COL_TRIAL_NUM = "trialnum"
 DATE = "date"
 TIME = "time"
+
+"""
+Reshape data originally collected by Chuyin et al such that it can be processed and analyzed the same way as the 
+current experiment. Then, integrate it into the analysis. 
+"""
+
+__author__ = "Rony Hirschhorn"
+
 
 CONF_MAP = {"Don't Know": 1, "Guess": 2, "Maybe": 3, "Confident": 4, "Very Confident": 5}
 
@@ -106,10 +113,11 @@ def transform_chuyin(file_path, save_path, load=True):
     if load:
         reshaped_df = pd.read_csv(file_path)
         reshaped_df.drop(columns=[x for x in reshaped_df.columns if "Unnamed" in x], inplace=True)
-    #reshaped_df = reshape_chuyin(file_path, save_path)
-    #reshaped_df = pd.read_csv(os.path.join(file_path, "gist_batch_v1_all_mt_reshaped.csv"))
-    #processed_df = pd.read_csv(os.path.join(file_path, "gist_batch_v1_all_mt_10_resps.csv"))
-    processed_df = process_dataframe(reshaped_df, save_path, load)
+    else:
+        reshaped_df = reshape_chuyin(file_path, save_path)
+
+    processed_df = process_dataframe(reshaped_df, save_path, load=False)
+
     analyze_data.analyze_data(processed_df, save_path)
 
     sys.stdout = orig_stdout  # bring it back
@@ -117,7 +125,6 @@ def transform_chuyin(file_path, save_path, load=True):
 
 
 if __name__ == "__main__":
-
     transform_chuyin(
-        file_path=r"..\gist_batch_v1_all_mt_numeric_ratings.csv",
-        save_path=r"..\processed")
+        file_path=r"..\gist_batch_v1_all_mt_reshaped.csv",
+        save_path=r"..\processed", load=True)
