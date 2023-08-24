@@ -230,7 +230,7 @@ def process_responses(experiment_df, save_path, load=False):
             experiment_df[col] = experiment_df[col].apply(lambda w: remove_stop_words(w))
         experiment_df = experiment_df.replace('', np.nan)  # replace '' with nan
         experiment_df.replace(np.nan, '', inplace=True)
-        experiment_df.to_csv(os.path.join(save_path, file_name))
+        experiment_df.to_csv(os.path.join(save_path, file_name), index=False)
     return experiment_df
 
 
@@ -258,11 +258,11 @@ def responses_spelling(experiment_df, save_path, load=False, conversion_file=Fal
                     if word != most_likely:  # if suggestion is different from the original word
                         orig.append(word)
                         corrected.append(most_likely)
-            conversion = pd.DataFrame({"orig": orig, "SpellCheck": corrected}).to_csv(os.path.join(save_path, conversion_file_name))
+            conversion = pd.DataFrame({"orig": orig, "SpellCheck": corrected}).to_csv(os.path.join(save_path, conversion_file_name), index=False)
             return  # manually go over and decide whether to (1) stay with the original (2) take the spellchecked version (3) alternative manual solution : add a "corrected" column!!
         for ind, row in conversion.iterrows():
             experiment_df = experiment_df.replace(row["orig"], row["corrected"])
-        experiment_df.to_csv(os.path.join(save_path, file_name))
+        experiment_df.to_csv(os.path.join(save_path, file_name), index=False)
     return experiment_df
 
 
@@ -289,12 +289,12 @@ def lemmatize(experiment_df, save_path, load=False):
                     orig.append(word)
                     lemmatized.append(lemm)
         conversion = pd.DataFrame({"orig": orig, "pos": pos, "lemmatized": lemmatized})
-        conversion.to_csv(os.path.join(save_path, lemm_file_name))
+        conversion.to_csv(os.path.join(save_path, lemm_file_name), index=False)
         return
     conversion.replace(np.nan, '', inplace=True)
     for ind, row in conversion.iterrows():
         experiment_df = experiment_df.replace(row["orig"], row["approved"])
-    experiment_df.to_csv(os.path.join(save_path, file_name))
+    experiment_df.to_csv(os.path.join(save_path, file_name), index=False)
     return experiment_df
 
 
@@ -670,6 +670,7 @@ def calculate_word_freq_stats(experiment_df, save_path, word_IA_dict, load=False
     """
     print("Calculating word frequency stats")
     file_name = "word_frequency_count.csv"
+    file_name_norare = "word_frequency_count_norare.csv"
     if load:
         df = pd.read_csv(os.path.join(save_path, file_name))
     else:
@@ -728,7 +729,15 @@ def calculate_word_freq_stats(experiment_df, save_path, word_IA_dict, load=False
                        "word is rare": word_is_rare, "word IA": curr_word_IA,
                        "word freq in English language": word_freq_in_english_lang}
         df = pd.DataFrame(result_dict)
-        df.to_csv(os.path.join(save_path, file_name))
+        # drop duplicate rows
+        df.drop_duplicates(inplace=True)
+        df.to_csv(os.path.join(save_path, file_name), index=False)
+        """
+        For correlation analysis between word IA and other measures, we will save a version of "word_frequency_count"
+        that contains ONLY words that have an IA score to begin with.
+        """
+        df_norare = df[df["word is rare"] != 1]  # rare words do not have an IA score by definition
+        df_norare.to_csv(os.path.join(save_path, file_name_norare), index=False)
 
     return df
 
@@ -739,6 +748,7 @@ def confidence_analysis(experiment_df, word_IA_dict, save_path, load=False):
     of that word, and the mean confidence rating for that word in the image.
     """
     file_name = "word_IA_confidence.csv"
+    file_name_norare = "word_IA_confidence_norare.csv"
     image_list = list()
     word_list = list()
     word_IA_list = list()
@@ -763,7 +773,8 @@ def confidence_analysis(experiment_df, word_IA_dict, save_path, load=False):
 
     result_df = pd.DataFrame({"image": image_list, "word": word_list, "word IA": word_IA_list,
                               "mean confidence rating": mean_confidence_list})
-    result_df.to_csv(os.path.join(save_path, file_name))
+    result_df.drop_duplicates(inplace=True)
+    result_df.to_csv(os.path.join(save_path, file_name), index=False)
     return
 
 
@@ -817,15 +828,13 @@ def analyze_data(experiment_df, save_path):
 
     print("---PREPARE DATA FOR ANALYSIS---")
     experiment_df = process_responses(experiment_df, save_path, load=True)
-    experiment_df = experiment_df[experiment_df.columns.drop(list(experiment_df.filter(regex='Unnamed')))]
     experiment_df = responses_spelling(experiment_df, save_path, load=True, conversion_file=True)  # Conversion file True after adding a "corrected" column to the output file!
-    experiment_df = experiment_df[experiment_df.columns.drop(list(experiment_df.filter(regex='Unnamed')))]
     experiment_df = lemmatize(experiment_df, save_path, load=True)  # "True" only after adding a "approved" column to the output file!
-    experiment_df = assert_no_duplicate_resps_within_subject(experiment_df)  # self explanatory
+    experiment_df = assert_no_duplicate_resps_within_subject(experiment_df)  # self-explanatory
     count_unique_words(experiment_df)  # print how many words are overall, and how many of them are unique
     count_no_response_trials(experiment_df)  # count empty and partial responses
     print("---DATABASE IS READY: LET THE ANALYSIS BEGIN!---")
-    images_aucs_dict, rare_word_count, word_count_dict, image_only_rare_words_df = calculate_image_aucs(experiment_df, save_path, load=False)  # ORIGINAL AUC CALCULATION
+    images_aucs_dict, rare_word_count, word_count_dict, image_only_rare_words_df = calculate_image_aucs(experiment_df, save_path, load=True)  # ORIGINAL AUC CALCULATION
     word_IA_dict = calculate_word_IAs(images_aucs_dict, save_path)
     print("--- WORD FREQ ANALYSIS---")
     calculate_word_freq_stats(experiment_df, save_path, word_IA_dict, load=False)

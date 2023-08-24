@@ -112,23 +112,23 @@ def filter_sess(subs_dict, sequences):
     :return: subs_dict, after filtering-out sessions with no experimental data.
     """
     subs_list = list(subs_dict.keys())
-    for sub in subs_list:
-        sub_sessions = subs_dict[sub]
+    for sub in subs_list:  # for each Prolific ID (that was extracted from the pavlovia output csv file)
+        sub_sessions = subs_dict[sub]  # all the sessions this ID has
         # Generate a dictionary (sub_seqs) where key=session (Pavlovia) number, value=session's sequence file name
         try:
             sub_seqs = {s: sub_sessions[s][SEQ_FILE].dropna(axis=0).unique()[0] for s in sub_sessions}
-        except Exception:  # Subject session file doesn't even have a "sequence" column - nothing was run or even loaded
+        except Exception:  # Subject session file doesn't even have a "sequence" column - nothing was run or even loaded in this session
             to_pop = list()
             for s in sub_sessions:
                 if SEQ_FILE not in sub_sessions[s].columns:
                     to_pop.append(s)
                     REMOVED_PAVLOVIA_SESS.append(sub_sessions[s])
-            p = [subs_dict[sub].pop(s) for s in to_pop]
+            p = [subs_dict[sub].pop(s) for s in to_pop]  # pop all the subject's empty sessions
             sub_seqs = {s: sub_sessions[s][SEQ_FILE].dropna(axis=0).unique()[0] for s in sub_sessions}
 
         # Check the sessions associated with each subject: filter out those w/o *experimental* data
         # Remove Pavlovia data files that have no experimental data in them
-        for sess_num in sorted(list(sub_seqs.keys())):
+        for sess_num in sorted(list(sub_seqs.keys())):  # a session that had a number
             if STIM_ID not in sub_sessions[sess_num].columns:  # No data was even collected in this session
                 sub_seqs.pop(sess_num)
                 r = subs_dict[sub].pop(sess_num)  # This does not count as an additional session
@@ -172,9 +172,8 @@ def filter_sess(subs_dict, sequences):
                                 sub_seqs.pop(sess_num)
                                 r = subs_dict[sub].pop(sess_num)
                                 REMOVED_PAVLOVIA_SESS.append(r)
-
-
-                else:  # Subject ID has 2 sessions, both have the **same** loaded stimulus sequence: didn't happen
+                # Subject ID has 2 sessions, both have the **same** loaded stimulus sequence: didn't happen
+                else:
                     raise Exception(f"ERROR: Subject {sub} did the experiment twice, with the same sequence!")
             else:  # More than 2 sessions containing experimental data for the same subject: didn't happen
                 raise Exception(f"ERROR: Subject {sub}has MORE than two sessions containing experimental data!")
@@ -250,8 +249,10 @@ def filter_subs(subs_dict, sequences, demog_data_path):
     subs_removed = 0
 
     subs_list = list(subs_dict.keys())
+    print(f"{len(subs_list)} subjects are considered at this point based on having a Prolific ID previously extracted from a pavlovia csv.")
+
     for sub in subs_list:
-        sub_sessions = subs_dict[sub]
+        sub_sessions = subs_dict[sub]  # all of this subject's sessions - after we already filtered out invalid sessions
         sub_sess_names = list(sub_sessions.keys())
         if len(sub_sess_names) == 0:  # This subject has NO experimental sessions
             r = subs_dict.pop(sub)  # Remove it
