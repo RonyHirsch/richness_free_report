@@ -608,6 +608,7 @@ def calculate_image_aucs(experiment_df, save_path, load=False):
         fl = open(os.path.join(save_path, rare_file_name), 'wb')
         pickle.dump(rare_word_count, fl)
         fl.close()
+
         # word counts dict
         word_count_df = pd.DataFrame.from_dict({(image, word): [word_count_dict[image][word]]
                                                 for image in word_count_dict.keys()
@@ -827,14 +828,14 @@ def analyze_data(experiment_df, save_path):
     """
 
     print("---PREPARE DATA FOR ANALYSIS---")
-    experiment_df = process_responses(experiment_df, save_path, load=True)
-    experiment_df = responses_spelling(experiment_df, save_path, load=True, conversion_file=True)  # Conversion file True after adding a "corrected" column to the output file!
-    experiment_df = lemmatize(experiment_df, save_path, load=True)  # "True" only after adding a "approved" column to the output file!
+    experiment_df = process_responses(experiment_df, save_path, load=False)
+    experiment_df = responses_spelling(experiment_df, save_path, load=False, conversion_file=False)  # Conversion file True after adding a "corrected" column to the output file!
+    experiment_df = lemmatize(experiment_df, save_path, load=False)  # "True" only after adding a "approved" column to the output file!
     experiment_df = assert_no_duplicate_resps_within_subject(experiment_df)  # self-explanatory
     count_unique_words(experiment_df)  # print how many words are overall, and how many of them are unique
     count_no_response_trials(experiment_df)  # count empty and partial responses
     print("---DATABASE IS READY: LET THE ANALYSIS BEGIN!---")
-    images_aucs_dict, rare_word_count, word_count_dict, image_only_rare_words_df = calculate_image_aucs(experiment_df, save_path, load=True)  # ORIGINAL AUC CALCULATION
+    images_aucs_dict, rare_word_count, word_count_dict, image_only_rare_words_df = calculate_image_aucs(experiment_df, save_path, load=False)  # ORIGINAL AUC CALCULATION
     word_IA_dict = calculate_word_IAs(images_aucs_dict, save_path)
     print("--- WORD FREQ ANALYSIS---")
     calculate_word_freq_stats(experiment_df, save_path, word_IA_dict, load=False)

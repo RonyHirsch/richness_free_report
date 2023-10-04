@@ -8,6 +8,7 @@ Manage the aggregation across the six experiments in the two studies:
 - plot word IAs across experiments (this is shared to all experiments in the same study)
 - plot word frequencies, separately per experiment
 - plot word confidence across experiments, separately per experiment
+- calculate non-veridical word stats
 
 The following code is run separately then the pre-processing performed separately for each experiment. Here, 
 we rely on all experiments already being run, pre-processed and analyzed. This module just aggregates across experiments
@@ -108,7 +109,7 @@ def manage_plots(word_ia_all_path, word_freq_path, word_conf_path):
     return
 
 
-def non_existent_words(freq_file_path, word_count_file_path, save_path):
+def non_existent_words(freq_file_path, save_path):
     """
     This generates statistics about the non-veridical words provided in each experiment.
     The paths here are AGGREGATED across all experiments of interest, and therefore, the csvs are expected to have a
@@ -124,10 +125,6 @@ def non_existent_words(freq_file_path, word_count_file_path, save_path):
     only (1) collapsed across all experiments (i.e., containing EXP_VERSION column) and (2) including a column denoting
     for each word if it exists in the image (VERIDICALITY).
 
-    word_count_file_path: this is "analyze_data" module output file "words_per_image_raw.csv". Again, the expectation
-    is that it will be collapsed and contain the EXP_VERSION column. This file contains for each image the total number
-    of words provided for this image (WORDS_PER_IMAGE column).
-
     save_path: the path to which the descriptives of non-existent words per experiment should be saved (a csv for means,
     and another for sds).
     """
@@ -142,12 +139,8 @@ def non_existent_words(freq_file_path, word_count_file_path, save_path):
     # in case it didn't work
     existence_counts.columns = existence_counts.columns.fillna("conceptual")
 
-    word_counts_df = pd.read_csv(word_count_file_path)
-    word_counts_df.rename(columns={"stim_name": IMAGE_NAME_COL}, inplace=True)
-
-    word_stats_df = pd.merge(word_counts_df, ia_counts, on=[EXP_VERSION, IMAGE_NAME_COL])
-    word_stats_df = pd.merge(word_stats_df, existence_counts, on=[EXP_VERSION, IMAGE_NAME_COL])
-    word_stats_df["pcnt IA out of provided"] = 100 * word_stats_df["words with IA"] / word_stats_df[WORDS_PER_IMAGE]
+    # % of nonexistent words out of words with IA that are not conceptual
+    word_stats_df = pd.merge(ia_counts, existence_counts, on=[EXP_VERSION, IMAGE_NAME_COL])
     word_stats_df["pcnt nonexistent out of IA"] = 100 * word_stats_df["not in image"] / word_stats_df["words with IA"]
     word_stats_df.to_csv(os.path.join(save_path, "word_counts_types.csv"), index=False)
     word_stats_df_noimage = word_stats_df.drop(columns=[IMAGE_NAME_COL], inplace=False)
@@ -160,12 +153,6 @@ def non_existent_words(freq_file_path, word_count_file_path, save_path):
 
 
 if __name__ == "__main__":
-    # plot aggregated results
-    manage_plots(
-    word_ia_all_path=r"..\aggregation\word_ia\experiment_IA_word_all.csv",
-    word_freq_path=r"..\aggregation\word_freq",
-    word_conf_path=r"..\aggregation\word_conf")
-    # analyze non-existent words across all experiments.
-    non_existent_words(freq_file_path=r"..\word_frequency_count_edited.csv",
-                       word_count_file_path=r"..\words_per_image_raw_all.csv",
-                       save_path=r"..\save_folder")
+    non_existent_words(
+        freq_file_path=r"..\word_nonexist\words_per_image_all.csv",  # in pre-reg'd version: word_frequency_count_all.csv
+        save_path=r"..\word_nonexist")

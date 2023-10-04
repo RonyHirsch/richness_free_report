@@ -258,8 +258,8 @@ def filter_subs(subs_dict, sequences, demog_data_path):
             r = subs_dict.pop(sub)  # Remove it
             REMOVED_PROLIFIC_SUBS.append(r)
             continue  # move on to the next subject
-    print(f"{len(REMOVED_PROLIFIC_SUBS)} subjects were removed due to having no experimental data. "
-          f"{len(subs_dict.keys())} subjects left in database.")
+    print(f"{len(REMOVED_PROLIFIC_SUBS)} files were removed due to having no experimental data. ")
+    print(f"***{len(subs_dict.keys())}*** SUBJECTS are in the initial database.")
     subs_removed += len(REMOVED_PROLIFIC_SUBS)
 
     cnt = 0
@@ -302,7 +302,7 @@ def filter_subs(subs_dict, sequences, demog_data_path):
     except Exception:
         demographic_data = demographic_data[demographic_data[DEMOG_SUB_OLD].isin(list(subs_dict.keys()))].reset_index(drop=True)
     #demographic_data = demographic_data.drop(demographic_data.columns[[0]], axis=1)
-    print(f"***{demographic_data.shape[0]}*** subjects are included in the experiment's database. A total of {subs_removed} subjects were excluded.")
+    print(f"***{demographic_data.shape[0]}*** subjects are included in the experiment's database. A total of {subs_removed} subject files were excluded.")
     return subs_dict, demographic_data
 
 
