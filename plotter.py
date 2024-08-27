@@ -97,13 +97,6 @@ def plot_raincloud(df, data_col_name, group_col_name, group_order, group_color_d
     plt.ylabel(y_title, fontsize=AXIS_SIZE, labelpad=LABEL_PAD)
     plt.xlabel(x_title, fontsize=AXIS_SIZE, labelpad=LABEL_PAD + 5)
 
-    # The following two lines generate custom fake lines that will be used as legend entries:
-    # markers = [plt.Line2D([0, 0], [0, 0], color=colors[ver], marker='o', linestyle='') for ver in colors]
-    # new_labels = [versions[ver] for ver in colors]
-    # legend = plt.legend(markers, new_labels, title="", markerscale=1, fontsize=TICK_SIZE - 2)
-    # plt.setp(legend.get_title(), fontsize=TICK_SIZE - 2)
-    legend = plt.legend().set_visible(False)
-
     # save plot
     figure = plt.gcf()  # get current figure
     figure.set_size_inches(15, 12)
@@ -113,14 +106,10 @@ def plot_raincloud(df, data_col_name, group_col_name, group_order, group_color_d
     return
 
 
-
-
 def plot_raincloud_connected(df, data_col_name, group_col_name, group_order, group_color_dict, save_path,
                    save_name, y_title, x_title, group_name_dict=None, marker_size=50, marker_alpha=0.25,
                    marker_spread=0.2, group_spacing=0.5, violin_width=0.35, violin_alpha=0.65,
                    ymin=0.5, ymax=1.05, yskip=0.1):
-
-
 
     # X axis params
     stim_xs = {item: idx * group_spacing for idx, item in enumerate(group_order)}
@@ -136,7 +125,6 @@ def plot_raincloud_connected(df, data_col_name, group_col_name, group_order, gro
         y_vals = df_group[data_col_name].tolist()
         # plot violin
         violin = plt.violinplot(y_vals, positions=[x_loc], widths=violin_width, showmeans=True, showextrema=False, showmedians=False)
-
 
         if left_flag:
             # make it a half-violin plot (only to the LEFT of center)
@@ -199,7 +187,6 @@ def plot_raincloud_connected(df, data_col_name, group_col_name, group_order, gro
     plt.ylabel(y_title, fontsize=AXIS_SIZE-2, labelpad=LABEL_PAD)
     plt.xlabel(x_title, fontsize=AXIS_SIZE-2, labelpad=LABEL_PAD+2)
 
-
     # save plot
     figure = plt.gcf()  # get current figure
     figure.set_size_inches(15, 12)
@@ -207,3 +194,4 @@ def plot_raincloud_connected(df, data_col_name, group_col_name, group_order, gro
     del figure
     plt.close()
     return
+
